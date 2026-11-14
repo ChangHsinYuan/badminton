@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+.venv-web/
+venv/
+env/
+.agents/
+web/frontend/node_modules/
+web/frontend/dist/
+
+# Local runtime storage (jobs, uploads, sqlite db) — never published
+storage/
+
+# Local inputs and generated outputs
+results/
+*.log
+
+# API keys and private configuration — never published
+config/*
+!config/llm_api.example.json
+
+# Large local sample videos (commit only small demo clips)
+videos/low_angle_linDanCup.mp4
+
+# Development / diagnostic images from calibration experiments
+templates/diag_*
+templates/crop_net.jpg
+templates/green_*
+templates/lines_*
+templates/*_grid.jpg
+templates/linDanCup_*
+templates/low_angle_linDanCup_*
+
+# Model weights are intentionally not published
+weights/*
+!weights/.gitkeep
+*.pt
+*.pth
+*.onnx
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
