@@ -100,7 +100,19 @@ python main.py --video-path videos/demo.mp4 --pose-family rtmo --pose-mode light
 
 # 生成英文可视化文字
 python main.py --video-path videos/demo.mp4 --language en
+
+# AI 教练分析(需先完成上面的分析; 在 config/llm_api.json 配置 LLM 网关, 模板见 config/llm_api.example.json)
+python style_coach.py --name 你的视频名
+python style_coach.py --name 你的视频名 --skip-frames   # 跳过关键帧动作点评(更快)
 ```
+
+AI 教练会从 `detections.jsonl` 提取跑位/步法/节奏特征, 抽取关键时刻帧画骨架, 再由大模型生成 `results/<视频名>/style_report.md`, 包含:
+
+- **球风画像**: 进攻型/防守反击型/控球型定性, 引用速度与站位热区数据
+- **跑位与步法分析**: 基准位置、覆盖范围、变向节奏的问题定位
+- **职业风格相似度**: 与知名球员的打法风格对照(仅风格倾向, 非水平比较)
+- **训练建议**: 针对数据短板的可执行训练项
+- **关键技术帧动作点评**: 视觉模型对骨架帧的重心/引拍/步法点评
 
 > `--template-path` 传视频里任意一帧清晰截图（固定机位下整段视频共用一个标定）。
 
@@ -210,6 +222,7 @@ Web Demo 支持：
 
 - **运动统计**：移动距离、瞬时速度、平均速度、最大速度和回合数。
 - **位置图表**：生成球员位置热力图和散点图。
+- **AI 教练分析（新增）**：大模型基于跑位/步法/节奏特征与关键帧骨架，生成球风画像、职业风格相似度对照和训练建议报告。
 - **视频叠加层**：可开关姿态 ROI、骨架、球员轨迹、球场轨迹、羽毛球轨迹和统计面板。
 - **结构化导出**：输出 `metadata.json`、`session_summary.json` 和逐帧 `detections.jsonl`。
 - **中英文可视化**：通过 `--language zh/en` 切换 CLI 输出图中的文字。
@@ -270,6 +283,8 @@ results/<video_name>/
 ├── detections.jsonl               # 逐帧检测记录（含场地米制坐标与速度）
 ├── detect_<video_name>.mp4        # 带骨架、轨迹和统计面板的视频
 ├── court_annotations.txt          # 标定缓存（自动或手动生成）
+├── style_report.md                # AI 教练分析报告（需配置 LLM）
+├── coach_frames/                  # 关键帧骨架图（AI 教练生成）
 └── position_visualizations/
     ├── heatmaps/                  # 球员位置热力图
     └── scatter_plots/             # 球员位置散点图
@@ -284,6 +299,9 @@ AI-YuJian-AI/
 ├── main.py                       # CLI 入口
 ├── fit_court_driver.py           # 低视角自动标定入口（Fork 新增）
 ├── court_fit.py                  # 自动标定核心算法（Fork 新增）
+├── style_coach.py                # AI 教练分析入口（Fork 新增）
+├── style_features.py             # 球风/跑位/步法特征提取（Fork 新增）
+├── keyframes.py                  # 关键帧骨架抽取（Fork 新增）
 ├── badminton_analysis/           # 核心视频分析管线
 │   ├── court/                    # 球场标定与坐标映射
 │   ├── data/                     # JSON / JSONL 持久化
@@ -313,6 +331,7 @@ AI-YuJian-AI/
 - [x] 球员移动轨迹、速度、距离和回合统计
 - [x] 热力图、散点图和结构化数据导出
 - [x] 本地 Web Demo：上传、标定、排队分析和结果下载
+- [x] **AI 教练分析：球风画像、步法诊断、职业风格相似度与训练建议（Fork 新增）**
 - [ ] 运动相机 / 运镜视频的动态标定
 - [ ] 更稳定的击球点识别
 - [ ] 更精准的羽毛球检测模型（如 TrackNetV3）
