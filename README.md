@@ -2,7 +2,7 @@
 
 # 🏸 AI-YuJian-AI · 羽见 AI（低视角自动标定版）
 
-### 把比赛录像变成可复盘的球场数据 —— 即使相机架在看台上
+### 把比赛录像变成可复盘的球场数据 —— 即使相机只架在场边地上
 
 [![Python](https://img.shields.io/badge/Python-3.8%2B-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
 [![React](https://img.shields.io/badge/Web-React%20%2B%20Vite-61DAFB?style=flat-square&logo=react&logoColor=111827)](web/frontend/)
@@ -170,7 +170,7 @@ Fork 版本的核心改进。传统手动标定在低视角下很难点准角点
 
 | 条件 | 要求 |
 | :--- | :--- |
-| 机位 | **固定不动**（最关键），架在三脚架/看台固定位置 |
+| 机位 | **固定不动**（最关键），场边三脚架或任何固定位置均可，无需看台高机位 |
 | 视野 | 球场边线大部分可见；近端底线可略微出画，**远端两条底线必须清晰** |
 | 光线 | 均匀，避免强烈逆光/地面反光/大面积阴影压住白线 |
 | 画质 | ≥720p，白线在画面里至少几个像素宽（太高太远会退化） |

@@ -43,9 +43,78 @@ def zone_of(x, y, side):
     return d, w
 
 
-def player_features(recs, side, mapper=None):
-    court, speeds, hands_img, base_img = [], [], {'left': [], 'right': []}, []
-    reach_m = []
+def infer_hand_pref(recs, side, arcs=None, topk=12, max_dist=180):
+    """持拍手推断: 击球帧(shot_types 归属后的出手时刻)哪只手离球更近, 多数投票
+
+    旧方法(哪只手腕检出帧数多)不可靠: 检出率差异来自遮挡与置信度, 与持拍手无关。
+    注意: 全视频找"球离双手最近"的帧会被飞掠而过的球污染(非击球帧),
+    因此优先用击球帧(frame0 附近窗口), 每次出手投一票; 不足时才退回通用近帧。
+    仅在双手关键点同帧可见时计票, 避免单侧遮挡造成偏票。
+    返回 (结论, 左手票, 右手票)
+    """
+    by_frame = {int(r['frame']): r for r in recs}
+
+    def _hands(fr):
+        p = ((by_frame.get(fr) or {}).get('players') or {}).get(side) or {}
+        h = p.get('hands') or {}
+        hl, hr = h.get('left'), h.get('right')
+        if hl and not (hl[0] > 1 and hl[1] > 1):
+            hl = None
+        if hr and not (hr[0] > 1 and hr[1] > 1):
+            hr = None
+        return hl, hr
+
+    def _dist(fr):
+        hl, hr = _hands(fr)
+        if not (hl and hr):
+            return None
+        s = (by_frame.get(fr) or {}).get('shuttlecock')
+        if not (s and s.get('image')):
+            return None
+        bx, by = s['image']
+        dl = float(np.hypot(hl[0] - bx, hl[1] - by))
+        dr = float(np.hypot(hr[0] - bx, hr[1] - by))
+        return dl, dr
+
+    votes = []  # (最近距离, 左/右)
+    if arcs:
+        for a in arcs:
+            if a.get('owner') != side:
+                continue
+            f0 = int(a['frame0'])
+            best = None
+            for fr in range(f0 - 4, f0 + 2):  # 接触点通常在 frame0 前 1~3 帧
+                dd = _dist(fr)
+                # 击球窗口内球必属本次交锋, 不设近距离门限(frame0 时球常已飞出 200~400px);
+                # 只剔除离谱野值
+                if dd is None or max(dd) > 600:
+                    continue
+                if best is None or min(dd) < best[0]:
+                    best = (min(dd), 'left' if dd[0] < dd[1] else 'right')
+            if best:
+                votes.append(best)
+    if len(votes) < 5:
+        # 兜底: 全视频"球最近双手"的 Top-K 时刻(可能混入非击球帧)
+        cand = []
+        for fr in sorted(by_frame):
+            dd = _dist(fr)
+            if dd is None or min(dd) > max_dist:
+                continue
+            cand.append((min(dd), 'left' if dd[0] < dd[1] else 'right'))
+        cand.sort(key=lambda t: t[0])
+        votes = cand[:topk]
+    if len(votes) < 3:
+        return '未知', 0, 0
+    nl = sum(1 for _, w in votes if w == 'left')
+    nr = len(votes) - nl
+    if max(nl, nr) >= 0.6 * len(votes) and max(nl, nr) >= 3:
+        return ('左手' if nl > nr else '右手'), nl, nr
+    return '无法判断', nl, nr
+
+
+def player_features(recs, side, mapper=None, arcs=None):
+    court, speeds = [], []
+    hand_pref, hl_v, hr_v = infer_hand_pref(recs, side, arcs)
     for r in recs:
         p = (r.get('players') or {}).get(side)
         if not p:
@@ -54,23 +123,6 @@ def player_features(recs, side, mapper=None):
         if c and all(np.isfinite(c)):
             court.append(c)
             speeds.append(p.get('speed') or 0.0)
-        if p.get('image'):
-            base_img.append(p['image'])
-        h = p.get('hands') or {}
-        for k in ('left', 'right'):
-            hk = h.get(k)
-            # rtmpose 低置信关键点会被置 (0,0), 需剔除
-            if hk and hk[0] > 1 and hk[1] > 1:
-                hands_img[k].append(hk)
-                if mapper is not None and p.get('image'):
-                    try:
-                        hc = mapper.image_to_court(hk)
-                        bc = mapper.image_to_court(p['image'])
-                        d = float(np.hypot(hc[0] - bc[0], hc[1] - bc[1]))
-                        if 0.3 < d < 2.5:  # 物理合理范围(躯干到拍击点)
-                            reach_m.append(d)
-                    except Exception:
-                        pass
 
     if len(court) < 30:
         return None
@@ -104,15 +156,9 @@ def player_features(recs, side, mapper=None):
     sprint_frames = speeds > SPRINT_MS
     sprints = int(np.sum(np.diff(sprint_frames.astype(int)) == 1) + (1 if sprint_frames[0] else 0))
 
-    hand_pref = '未知'
-    nl, nr = len(hands_img['left']), len(hands_img['right'])
-    if nl + nr > 0:
-        hand_pref = '右手' if nr > nl else ('左手' if nl > nr * 1.5 else '双手均势')
-
     f = {
         'side': side, 'name': SIDE_NAME[side],
         'frames': len(court), 'duration_min': len(court) / 30 / 60,
-        'base': [float(np.median(x)), float(np.median(y))],
         'net_dist_mean': float(dfn.mean()), 'depth_std': float(dfn.std()),
         'x_range': float(np.percentile(x, 95) - np.percentile(x, 5)),
         'x_std': float(x.std()),
@@ -125,8 +171,7 @@ def player_features(recs, side, mapper=None):
         'front_share': float((dfn < HALF_LEN / 3).mean()),
         'back_share': float((dfn > HALF_LEN * 2 / 3).mean()),
         'hand_pref': hand_pref,
-        'reach_mean_m': float(np.median(reach_m)) if reach_m else None,
-        'reach_max_m': float(np.percentile(reach_m, 95)) if reach_m else None,
+        'hand_votes': [hl_v, hr_v],
     }
     # 风格指数(0~100 规则打分)
     sSprint = min(f['sprint_share'] / 0.15, 1.0)
@@ -176,14 +221,25 @@ def extract(detections_path):
     meta_path = os.path.join(os.path.dirname(detections_path), 'metadata.json')
     if os.path.exists(meta_path):
         try:
-            from court.mapper import CourtMapper
+            from badminton_analysis.court.mapper import CourtMapper
             corners = json.load(open(meta_path))['court']['corners']
             mapper = CourtMapper([tuple(c) for c in corners])
         except Exception:
-            mapper = None
+            try:
+                from court.mapper import CourtMapper
+                corners = json.load(open(meta_path))['court']['corners']
+                mapper = CourtMapper([tuple(c) for c in corners])
+            except Exception:
+                mapper = None
     out = {'players': {}, 'rhythm': shuttle_rhythm(recs)}
+    arcs = []
+    try:
+        from shot_types import analyze as _shot_analyze
+        arcs = _shot_analyze(recs, mapper, 30.0).get('arcs') or []
+    except Exception:
+        arcs = []
     for side in SIDES:
-        f = player_features(recs, side, mapper)
+        f = player_features(recs, side, mapper, arcs)
         if f:
             out['players'][side] = f
     out['n_frames'] = len(recs)
@@ -200,15 +256,16 @@ def summarize(features):
         f = features['players'].get(side)
         if not f:
             continue
-        L.append(f"\n【{f['name']}】 出镜 {f['frames']} 帧 ({f['duration_min']:.1f} 分钟), 持拍手: {f['hand_pref']}")
+        hv = f.get('hand_votes') or [0, 0]
+        hs = f' (近球投票 左{hv[0]}:右{hv[1]})' if f['hand_pref'] in ('左手', '右手') else ''
+        L.append(f"\n【{f['name']}】 出镜 {f['frames']} 帧 ({f['duration_min']:.1f} 分钟), 持拍手: {f['hand_pref']}{hs}")
         zt = ', '.join(f"{ZN[d]}{WN[w]} {f['zones'][d][w]:.0%}" for d in range(3) for w in range(3) if f['zones'][d][w] >= 0.03)
         L.append(f"  站位热区: {zt}")
-        L.append(f"  基准位置: ({f['base'][0]:.1f}, {f['base'][1]:.1f}) m, 平均距网 {f['net_dist_mean']:.2f} m, "
+        L.append(f"  平均距网 {f['net_dist_mean']:.2f} m, "
                  f"前后移动幅度 σ={f['depth_std']:.2f} m, 左右覆盖 {f['x_range']:.1f} m")
         L.append(f"  速度: 平均 {f['speed_mean']:.2f} / P90 {f['speed_p90']:.2f} / 峰值 {f['speed_max']:.2f} m/s, "
                  f"冲刺 {f['sprints']} 次 (占比 {f['sprint_share']:.1%}), 总移动 {f['distance_m']:.0f} m")
-        L.append(f"  变向率 {f['turn_per_sec']:.2f} 次/秒"
-                 + (f", 拍击平均伸展 {f['reach_mean_m']:.2f} m (P95 {f['reach_max_m']:.2f} m)" if f['reach_mean_m'] else ''))
+        L.append(f"  变向率 {f['turn_per_sec']:.2f} 次/秒")
         si = f['style_index']
         L.append(f"  风格指数: 进攻性 {si['进攻性']} | 防守韧性 {si['防守韧性']} | 控球节奏 {si['控球节奏']} | 网前压迫 {si['网前压迫']}")
     return '\n'.join(L)
