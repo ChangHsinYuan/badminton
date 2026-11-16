@@ -104,15 +104,27 @@ python main.py --video-path videos/demo.mp4 --language en
 # AI 教练分析(需先完成上面的分析; 在 config/llm_api.json 配置 LLM 网关, 模板见 config/llm_api.example.json)
 python style_coach.py --name 你的视频名
 python style_coach.py --name 你的视频名 --skip-frames   # 跳过关键帧动作点评(更快)
+python style_coach.py --name 你的视频名 --player-hint "lower=桃田贤斗"  # 已知球员身份
+
+# 击球类型识别(杀/吊/高远/平抽, 独立运行)
+python shot_types.py results/你的视频名/detections.jsonl
+
+# 职业风格特征卡: 从视频构建球员特征卡 / 与库内特征卡算相似度
+python pro_profiles.py --detections results/你的视频名/detections.jsonl --build 桃田贤斗 --side lower
+python pro_profiles.py --detections results/你的视频名/detections.jsonl --match --side lower
 ```
 
 AI 教练会从 `detections.jsonl` 提取跑位/步法/节奏特征, 抽取关键时刻帧画骨架, 再由大模型生成 `results/<视频名>/style_report.md`, 包含:
 
-- **球风画像**: 进攻型/防守反击型/控球型定性, 引用速度与站位热区数据
+- **球风画像**: 进攻型/防守反击型/控球型定性, 引用速度、站位热区与击球类型分布数据
 - **跑位与步法分析**: 基准位置、覆盖范围、变向节奏的问题定位
-- **职业风格相似度**: 与知名球员的打法风格对照(仅风格倾向, 非水平比较)
+- **击球类型识别**: 球轨迹几何规则分类(杀球/吊球/高远球/平抽), 输出每人出手分布与"来球->回球"应对统计
+- **职业风格相似度**: 加权特征向量最近邻计算(特征卡库可复现、可扩充), LLM 仅解读计算结果
 - **训练建议**: 针对数据短板的可执行训练项
 - **关键技术帧动作点评**: 视觉模型对骨架帧的重心/引拍/步法点评
+
+> 已知球员身份时建议传 `--player-hint lower=桃田贤斗`, 报告会围绕真人特点验证数据而非凭空联想。
+> 击球类型识别的覆盖率与精度限制见 `docs/IMPROVEMENTS.md`。
 
 > `--template-path` 传视频里任意一帧清晰截图（固定机位下整段视频共用一个标定）。
 
@@ -285,6 +297,7 @@ results/<video_name>/
 ├── court_annotations.txt          # 标定缓存（自动或手动生成）
 ├── style_report.md                # AI 教练分析报告（需配置 LLM）
 ├── coach_frames/                  # 关键帧骨架图（AI 教练生成）
+├── shot_analysis/                 # 击球类型识别结果（弧线明细/统计/总览图）
 └── position_visualizations/
     ├── heatmaps/                  # 球员位置热力图
     └── scatter_plots/             # 球员位置散点图
@@ -302,6 +315,10 @@ AI-YuJian-AI/
 ├── style_coach.py                # AI 教练分析入口（Fork 新增）
 ├── style_features.py             # 球风/跑位/步法特征提取（Fork 新增）
 ├── keyframes.py                  # 关键帧骨架抽取（Fork 新增）
+├── shot_types.py                 # 击球类型识别（Fork 新增）
+├── pro_profiles.py               # 职业风格特征卡匹配（Fork 新增）
+├── profiles/                     # 特征卡库（Fork 新增）
+├── docs/IMPROVEMENTS.md          # 改进记录与踩坑笔记（Fork 新增）
 ├── badminton_analysis/           # 核心视频分析管线
 │   ├── court/                    # 球场标定与坐标映射
 │   ├── data/                     # JSON / JSONL 持久化
@@ -332,6 +349,7 @@ AI-YuJian-AI/
 - [x] 热力图、散点图和结构化数据导出
 - [x] 本地 Web Demo：上传、标定、排队分析和结果下载
 - [x] **AI 教练分析：球风画像、步法诊断、职业风格相似度与训练建议（Fork 新增）**
+- [x] **击球类型识别与职业特征卡匹配（Fork 新增）**
 - [ ] 运动相机 / 运镜视频的动态标定
 - [ ] 更稳定的击球点识别
 - [ ] 更精准的羽毛球检测模型（如 TrackNetV3）

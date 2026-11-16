@@ -1,0 +1,22 @@
+{
+ "name": "桃田贤斗",
+ "side": "lower",
+ "source": "measured",
+ "video": "low_angle_linDanCup",
+ "features": {
+  "进攻性": 34.0,
+  "防守韧性": 48.0,
+  "控球节奏": 55.0,
+  "网前压迫": 19.0,
+  "front_share": 0.07,
+  "mid_share": 0.73,
+  "back_share": 0.2,
+  "speed_mean": 2.21,
+  "speed_p90": 3.44,
+  "sprint_share": 0.055,
+  "turn_rate": 0.125,
+  "net_dist_mean": 3.65,
+  "shot_平抽": 0.25,
+  "shot_高远球/挑球": 0.75
+ }
+}

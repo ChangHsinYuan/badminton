@@ -1,0 +1,22 @@
+{
+ "name": "林丹杯远端球员",
+ "side": "upper",
+ "source": "measured",
+ "video": "low_angle_linDanCup",
+ "features": {
+  "进攻性": 41.0,
+  "防守韧性": 60.0,
+  "控球节奏": 59.0,
+  "网前压迫": 1.0,
+  "front_share": 0.005,
+  "mid_share": 0.529,
+  "back_share": 0.466,
+  "speed_mean": 2.217,
+  "speed_p90": 3.84,
+  "sprint_share": 0.077,
+  "turn_rate": 1.021,
+  "net_dist_mean": 4.511,
+  "shot_高远球/挑球": 0.909,
+  "shot_平抽": 0.091
+ }
+}
