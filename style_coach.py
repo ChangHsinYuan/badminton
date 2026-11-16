@@ -82,14 +82,17 @@ def _hint_block(hints):
     return '\n'.join(L)
 
 
-def _pro_block(detections, hints):
+def _pro_block(detections, hints, matches=None):
     """特征卡最近邻计算 -> 提示词段落(计算数据, LLM 只解读不发明)"""
     L = []
     for side in ('upper', 'lower'):
-        try:
-            res = pro_profiles.match_side(detections, side)
-        except SystemExit:
-            res = []
+        if matches is not None and side in matches:
+            res = matches[side]
+        else:
+            try:
+                res = pro_profiles.match_side(detections, side)
+            except SystemExit:
+                res = []
         who = (hints or {}).get(side)
         nm = '远端球员(upper)' if side == 'upper' else '近端球员(lower)'
         if who:
@@ -109,14 +112,29 @@ def _pro_block(detections, hints):
 def build_report(name, detections, skip_frames=False, max_vision=3, model=None,
                  hints=None):
     feats = style_features.extract(detections)
-    summary = style_features.summarize(feats)
+    # 特征卡匹配: >=90% 命中实测卡时, 持拍手继承卡片记录
+    # (近球投票依赖相机几何, 跨机位不稳; 同一人持拍手不变, 卡片更可信)
+    matches, hand_hint = {}, {}
+    for side in ('upper', 'lower'):
+        try:
+            matches[side] = pro_profiles.match_side(detections, side)
+        except SystemExit:
+            matches[side] = []
+        for r in matches[side]:
+            if r['source'] != 'measured' or r['similarity'] < 90:
+                continue
+            hp = pro_profiles.card_hand_pref(r['name'])
+            if hp in ('左手', '右手'):
+                hand_hint[side] = (hp, r['name'])
+            break
+    summary = style_features.summarize(feats, hand_hint)
     out_dir = os.path.dirname(detections)
     shot = shot_types.extract_shot_analysis(
         detections, os.path.join(out_dir, 'shot_analysis'))
     shot_txt = shot_types.summarize_text(shot)
     print('特征与击球类型提取完成, 请求文本模型分析...')
     hint_block = _hint_block(hints)
-    pro_block = _pro_block(detections, hints)
+    pro_block = _pro_block(detections, hints, matches)
     body = ask_with_retry(TEXT_PROMPT.format(summary=summary + '\n\n' + shot_txt,
                                              hint_block=hint_block,
                                              pro_block=pro_block), model=model)

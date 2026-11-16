@@ -102,6 +102,14 @@ def load_profiles(d):
     return ps
 
 
+def card_hand_pref(name, out_dir=PROFILES_DIR):
+    """按卡名取持拍手(卡片无该字段或不存在时返回 None)"""
+    for p in load_profiles(out_dir):
+        if p.get('name') == name:
+            return p.get('hand_pref')
+    return None
+
+
 def build(detections_path, name, side, source='measured', out_dir=PROFILES_DIR):
     style = extract_style(detections_path)
     shot = extract_shot_analysis(detections_path)
@@ -113,6 +121,7 @@ def build(detections_path, name, side, source='measured', out_dir=PROFILES_DIR):
     prof = {
         'name': name, 'side': side, 'source': source,
         'video': os.path.basename(os.path.dirname(detections_path)),
+        'hand_pref': f.get('hand_pref'),
         'features': {k: round(x, 3) for k, x in vec.items()},
     }
     os.makedirs(out_dir, exist_ok=True)

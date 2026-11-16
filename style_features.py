@@ -246,8 +246,8 @@ def extract(detections_path):
     return out
 
 
-def summarize(features):
-    """特征 -> 中文摘要表(嵌进 LLM 提示词)"""
+def summarize(features, hand_hint=None):
+    """特征 -> 中文摘要表(嵌进 LLM 提示词); hand_hint: {side: (持拍手, 卡名)} 特征卡继承"""
     L = [f"视频共 {features['n_frames']} 帧, 估计击球 {features['rhythm']['hits']} 次, "
          f"回合节奏 {features['rhythm']['pace_per_sec']} 次/秒, 球在场时间占比 {features['rhythm']['active_ratio']:.0%}"]
     ZN = ['网前', '中场', '后场']
@@ -257,8 +257,16 @@ def summarize(features):
         if not f:
             continue
         hv = f.get('hand_votes') or [0, 0]
-        hs = f' (近球投票 左{hv[0]}:右{hv[1]})' if f['hand_pref'] in ('左手', '右手') else ''
-        L.append(f"\n【{f['name']}】 出镜 {f['frames']} 帧 ({f['duration_min']:.1f} 分钟), 持拍手: {f['hand_pref']}{hs}")
+        vote = f'近球投票 左{hv[0]}:右{hv[1]}'
+        hh = (hand_hint or {}).get(side)
+        if hh and hh[0] in ('左手', '右手'):
+            hand = hh[0]
+            hs = f' ({vote})' if hand == f['hand_pref'] else \
+                 f' (继承自匹配卡 {hh[1]}; 本场{vote})'
+        else:
+            hand = f['hand_pref']
+            hs = f' ({vote})' if hand in ('左手', '右手') else ''
+        L.append(f"\n【{f['name']}】 出镜 {f['frames']} 帧 ({f['duration_min']:.1f} 分钟), 持拍手: {hand}{hs}")
         zt = ', '.join(f"{ZN[d]}{WN[w]} {f['zones'][d][w]:.0%}" for d in range(3) for w in range(3) if f['zones'][d][w] >= 0.03)
         L.append(f"  站位热区: {zt}")
         L.append(f"  平均距网 {f['net_dist_mean']:.2f} m, "
