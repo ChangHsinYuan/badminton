@@ -14,6 +14,8 @@
 
 [快速开始](#-快速开始) · [自动标定](#-低视角自动球场标定) · [拍摄要求](#-拍摄要求与使用建议) · [Web Demo](#-web-demo) · [效果展示](#-效果展示)
 
+🌐 简体中文 | [English](README_EN.md)
+
 </div>
 
 ---
@@ -321,7 +323,8 @@ AI-YuJian-AI/
 ├── shot_types.py                 # 击球类型识别（Fork 新增）
 ├── pro_profiles.py               # 职业风格特征卡匹配（Fork 新增）
 ├── profiles/                     # 特征卡库（Fork 新增）: 实测卡 + 林丹/李宗伟/谌龙/安赛龙/金廷/安东森等球星风格画像卡
-├── docs/IMPROVEMENTS.md          # 技术文档：标定原理/方法论/改进记录/已知限制（Fork 新增，唯一技术文档）
+├── docs/IMPROVEMENTS.md          # 技术文档（中文）：标定原理/方法论/改进记录/已知限制（Fork 新增，唯一技术文档）
+├── docs/IMPROVEMENTS_EN.md       # 技术文档（英文）：与中文版内容一致
 ├── badminton_analysis/           # 核心视频分析管线
 │   ├── court/                    # 球场标定与坐标映射
 │   ├── data/                     # JSON / JSONL 持久化

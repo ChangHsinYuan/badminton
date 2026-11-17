@@ -2,6 +2,7 @@
 
 本 Fork 的唯一技术文档: 球场标定原理与失效判据、击球类型可信度、设计方法论、
 功能演进 (改进记录) 与已知限制。使用入门见 [README](../README.md)。
+English version: [IMPROVEMENTS_EN.md](IMPROVEMENTS_EN.md) (内容与中文版一致)。
 
 ## 目录
 
