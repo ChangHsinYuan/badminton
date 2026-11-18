@@ -38,6 +38,25 @@
 
 </div>
 
+### 🎯 3D 弹道重建（相机自标定 + 物理拟合）
+
+<div align="center">
+
+![3D弹道重建](assets/3d_demo.gif)
+
+*高清版：[assets/3d_demo_smash.mp4](assets/3d_demo_smash.mp4) — 单目低视角 3D 弹道重建。黄虚线 = 物理拟合弹道（重力+空气阻力），灰虚线 = 低置信弹道，绿圈 = 反推击球点与出手球速（本例一记 ≈238 km/h 杀球），品红 ✕ = 预测落点，青圈 = 过网点，青色标杆 = 球员脚位（1.75 m）*
+
+</div>
+
+仅凭场地线即可自动求解相机内外参（无标定物、无手动操作），再把球检测升维成米制弹道——击球点高度、出手球速、过网余量、落点全部可测。技术细节见 [docs/IMPROVEMENTS.md](docs/IMPROVEMENTS.md) v3 章节，复现命令：
+
+```bash
+python camera_selfcalib.py --results-dir results/<name>   # 相机自标定 (inv(H) 分解)
+python hit_points3d.py    --results-dir results/<name>     # 击球点高度
+python trajectory3d.py    --results-dir results/<name>     # 物理弹道拟合 + 出手球速
+python visualize3d.py     --results-dir results/<name>     # 弹道可视化回写视频
+```
+
 | 球员位置热力图 | 球员位置散点图 |
 | :---: | :---: |
 | ![球员位置热力图](assets/lowangle_heatmap.png) | ![球员位置散点图](assets/lowangle_scatter.png) |

@@ -351,12 +351,53 @@ Four design principles spanning v1–v2.2:
    record of a high-confidence identity match > a single-video vote (a player does
    not change hands; votes flip with camera angles).
 
+## v3: Monocular 3D Measurement Chain (2026-11-18)
+
+Three steps recover metric physical quantities from 2D video, using only court-line
+self-calibration — no calibration objects:
+
+1. **Camera self-calibration** (`camera_selfcalib.py`): decompose the court
+   homography inv(H) into K/R/t (centered principal point + square-pixel
+   assumption, two equations solved for f and averaged). **Left-handed trap**:
+   the mirror canonicalization makes the H frame left-handed; the orientation
+   class must be auto-selected by requiring camera height C_z > 0, otherwise the
+   camera lands below the floor; downstream 3D points need y_w = 13.4 − y_hn.
+   Camera positions calibrated independently on two videos agree within 12 cm;
+   net-top (1.55 m) projection vs the actual tape measures ±1–7 px.
+2. **Contact-point heights** (`hit_points3d.py`): closest approach between the
+   ball ray and the vertical line through the hitter's foot position. Clear/lift
+   contact points median 2.2–2.4 m; upper/lower gap 0.8–1.0 m ≈ arm + racket,
+   dimensionally self-consistent.
+3. **Physics trajectory fitting** (`trajectory3d.py`): RK4 with gravity +
+   quadratic drag, depth-grid initialization + two-stage refinement; a strong
+   receiver anchor (by the end the ball has slowed to ~7 m/s and must be within
+   1.5 m of the opponent) plus a weak hitter anchor break the monocular
+   "slow-near / fast-far" speed–depth degeneracy. β converges to 0.19–0.21
+   (physical truth ≈0.22, shuttle terminal velocity 6.7 m/s); the new video
+   fits 119 arcs with 0 failures, top speed 238 km/h (back-extrapolation only
+   0.05 s = first detection is the contact, high confidence), clear/lift shot
+   speed median 24.2 m/s, net clearance +0.4 to +0.9 m.
+
+**Validation logic**: the drag coefficient β is the physics-level touchstone of
+the whole chain — if calibration, anchors, or the time axis were wrong anywhere,
+β would not settle near 0.2; its convergence certifies the chain. `visualize3d.py`
+draws the trajectories back onto the video (yellow = trusted, gray + ?? =
+low-confidence) for eyeball verification; the README top shows the demo clip.
+
+**Known boundaries**: for fast shots the first detection lags the actual contact,
+so shot speed is physically back-extrapolated (`speed_at_owner_axis`);
+t_back > 0.3 s is unreliable (json stores t_back for filtering). Detection
+misses (motion blur / occlusion) cap coverage — every drawn trajectory is fitted
+from real detections; interpolation only fills geometric gaps.
+
 ## Known Limitations and Future Directions
 
 1. **Ball detection**: TrackNetV3 (32-channel input) can improve detection rate and
    precision → directly improves shot-type coverage
-2. **3D ball trajectory**: use the net line (known 1.55 m height) as a second-plane
-   constraint to solve the vertical vanishing point, decoupling height from depth
+2. **3D ball trajectory**: implemented by the v3 monocular 3D measurement chain
+   (self-calibration + anchored fitting, above); remaining: specificity validation
+   of the far-player style cards on the 3D chain, generalization to more camera
+   positions, higher frame rate (30 fps caps temporal precision)
 3. **Card library expansion**: batch `--build` on public pro match videos to build a
    cross-player comparable card library
 4. **Shot types**: fuse hand swing trajectories (hands data already exists) with the
@@ -365,7 +406,8 @@ Four design principles spanning v1–v2.2:
    reports should interpret it together with identity/style, not as a standalone weakness
 6. **Ball detection bias → biased shot distribution**: see
    [Shot-Type Confidence](#shot-type-confidence-impact-of-missing-ball-trajectories) above
-7. **The ball is processed purely in 2D**: see
-   [The 2D Boundary and the Pseudo-3D Route](#the-2d-boundary-and-the-pseudo-3d-route) above
+7. **Metric ball quantities bounded by detection precision**: v3 broke the "pure 2D,
+   no physical quantities" boundary, but shot-speed / contact-point accuracy is
+   still constrained by detection noise (see v3 known boundaries)
 8. **Calibration left-right mirror ambiguity**: see
    [Court Calibration Principle and Failure Criteria](#court-calibration-principle-and-failure-criteria) above

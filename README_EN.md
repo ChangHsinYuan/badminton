@@ -36,6 +36,25 @@ It runs directly as a Python CLI, and also ships a local Web Demo where upload, 
 
 </div>
 
+### 🎯 3D Trajectory Reconstruction (Camera Self-Calibration + Physics Fitting)
+
+<div align="center">
+
+![3D trajectory reconstruction](assets/3d_demo.gif)
+
+*HD version: [assets/3d_demo_smash.mp4](assets/3d_demo_smash.mp4) — monocular low-angle 3D trajectory reconstruction. Yellow dashes = physics-fitted trajectory (gravity + air drag), gray dashes = low-confidence trajectory, green circle = back-extrapolated contact point with shot speed (a ≈238 km/h smash in this clip), magenta ✕ = predicted landing spot, cyan circle = net-crossing point, cyan pole = player's foot position (1.75 m)*
+
+</div>
+
+The camera intrinsics/extrinsics are solved automatically from the court lines alone (no calibration objects, no manual clicks), then shuttle detections are lifted to metric trajectories — contact height, shot speed, net clearance, and landing spot all become measurable. See the v3 section of [docs/IMPROVEMENTS_EN.md](docs/IMPROVEMENTS_EN.md) for details. To reproduce:
+
+```bash
+python camera_selfcalib.py --results-dir results/<name>   # camera self-calibration (inv(H) decomposition)
+python hit_points3d.py    --results-dir results/<name>     # contact-point heights
+python trajectory3d.py    --results-dir results/<name>     # physics trajectory fit + shot speed
+python visualize3d.py     --results-dir results/<name>     # overlay trajectories back onto video
+```
+
 | Player position heatmap | Player position scatter plot |
 | :---: | :---: |
 | ![Player position heatmap](assets/lowangle_heatmap.png) | ![Player position scatter plot](assets/lowangle_scatter.png) |
