@@ -61,6 +61,30 @@ python visualize3d.py     --results-dir results/<name>     # 弹道可视化回�
 | :---: | :---: |
 | ![球员位置热力图](assets/lowangle_heatmap.png) | ![球员位置散点图](assets/lowangle_scatter.png) |
 
+### 🛰 45° 天空俯瞰（3D 战术视图）
+
+<div align="center">
+
+![45度天空俯瞰](assets/aerial_45.png)
+
+*干净 3D 俯瞰：标准绿场白线球场 + 球网（含网柱外移量）+ 按球种配色的物理弹道（重力+空气阻力 RK4 反演）+ 球员销钉与虚线脚步轨迹。视角 `--elev 45 --azim -60` 可调，坏拟合弧自动过滤不入画。复现：*
+
+```bash
+python trajectory3d_anchor.py --results-dir results/<name>   # 击球锚定弹道拟合 (人脚位锚)
+python render_aerial.py --results-dir results/<name>         # 45° 俯瞰渲染 (--rally longest|all|N)
+```
+
+*🎬 逐帧同步版（左=原视频，右=45° 俯瞰，帧号/时间轴严格对齐；实线彩弹道=检出拟合，灰虚线=物理预测延续，落地后留白）：*
+
+- [assets/aerial_sync_linDanCup.mp4](assets/aerial_sync_linDanCup.mp4) — 网后低视角林丹杯片段全片（90 s）
+- [assets/aerial_sync_momota.mp4](assets/aerial_sync_momota.mp4) — 桃田贤斗 vs 王轶凡低视角全片（5 min）
+
+```bash
+python render_aerial_video.py --results-dir results/<name>   # 并排同步视频 (--stride 2 提速)
+```
+
+</div>
+
 | 低视角自动标定结果（绿线=球场线投影，蓝线=网底线） |
 | :---: |
 | ![低视角自动标定](assets/lowangle_calibration.jpg) |
