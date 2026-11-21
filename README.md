@@ -76,8 +76,10 @@ python render_aerial.py --results-dir results/<name>         # 45° 俯瞰渲染
 
 *🎬 逐帧同步版（左=原视频，右=45° 俯瞰，帧号/时间轴严格对齐；实线彩弹道=检出拟合，灰虚线=物理预测延续，落地后留白）：*
 
-- [assets/aerial_sync_linDanCup.mp4](assets/aerial_sync_linDanCup.mp4) — 网后低视角林丹杯片段全片（90 s）
-- [assets/aerial_sync_momota.mp4](assets/aerial_sync_momota.mp4) — 桃田贤斗 vs 王轶凡低视角全片（5 min）
+| 林丹杯低视角片段（90 s） | 桃田贤斗 vs 王轶凡（5 min） |
+| :---: | :---: |
+| ![俯瞰同步预览-林丹杯](assets/aerial_sync_linDanCup.gif) | ![俯瞰同步预览-桃田](assets/aerial_sync_momota.gif) |
+| [▶ 播放完整视频 assets/aerial_sync_linDanCup.mp4](assets/aerial_sync_linDanCup.mp4) | [▶ 播放完整视频 assets/aerial_sync_momota.mp4](assets/aerial_sync_momota.mp4) |
 
 ```bash
 python render_aerial_video.py --results-dir results/<name>   # 并排同步视频 (--stride 2 提速)
